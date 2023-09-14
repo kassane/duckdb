@@ -242,61 +242,61 @@ pub fn build(b: *std.Build) void {
         lib.linkLibrary(dep);
     }
 
-    for (find_cmake_files(b, "extension")) |path| {
-        const dirname = std.fs.path.dirname(path) orelse unreachable;
-        if (std.mem.endsWith(u8, dirname, "excel")) continue; // only compiled under BUILD_UNITTESTS
-        if (std.mem.endsWith(u8, dirname, "icu")) continue; // only compiled under BUILD_UNITTESTS
-        if (std.mem.indexOf(u8, dirname, "tpch") != null) continue; // only compiled under BUILD_UNITTESTS and BUILD_TPCE
-        if (std.mem.indexOf(u8, dirname, "tcpds") != null) continue; // only referenced by an extension.
-        if (std.mem.indexOf(u8, dirname, "dsdgen") != null) continue;
-        // if (std.mem.indexOf(u8, dirname, "parquet") != null) continue;
-        // if (std.mem.indexOf(u8, dirname, "visualizer") != null) continue;
-        if (std.mem.indexOf(u8, dirname, "inet") != null) continue;
-        // if (std.mem.indexOf(u8, dirname, "httpfs") != null) continue;
+    // for (find_cmake_files(b, "extension")) |path| {
+    //     const dirname = std.fs.path.dirname(path) orelse unreachable;
+    //     if (std.mem.endsWith(u8, dirname, "excel")) continue; // only compiled under BUILD_UNITTESTS
+    //     if (std.mem.endsWith(u8, dirname, "icu")) continue; // only compiled under BUILD_UNITTESTS
+    //     if (std.mem.indexOf(u8, dirname, "tpch") != null) continue; // only compiled under BUILD_UNITTESTS and BUILD_TPCE
+    //     if (std.mem.indexOf(u8, dirname, "tcpds") != null) continue; // only referenced by an extension.
+    //     if (std.mem.indexOf(u8, dirname, "dsdgen") != null) continue;
+    //     // if (std.mem.indexOf(u8, dirname, "parquet") != null) continue;
+    //     // if (std.mem.indexOf(u8, dirname, "visualizer") != null) continue;
+    //     if (std.mem.indexOf(u8, dirname, "inet") != null) continue;
+    //     // if (std.mem.indexOf(u8, dirname, "httpfs") != null) continue;
 
-        const data = std.fs.cwd().readFileAlloc(b.allocator, path, 4 * 1024 * 1024) catch unreachable;
-        const args = parse_cmake_call(b, data, "add_library(") orelse continue;
-        const dep = b.addStaticLibrary(.{
-            .name = args[0],
-            .target = target,
-            .optimize = optimize,
-        });
+    //     const data = std.fs.cwd().readFileAlloc(b.allocator, path, 4 * 1024 * 1024) catch unreachable;
+    //     const args = parse_cmake_call(b, data, "add_library(") orelse continue;
+    //     const dep = b.addStaticLibrary(.{
+    //         .name = args[0],
+    //         .target = target,
+    //         .optimize = optimize,
+    //     });
 
-        const include_path = std.fs.path.join(b.allocator, &[_][]const u8{ dirname, "include" }) catch unreachable;
-        dep.addIncludePath(.{ .path = include_path });
-        dep.addIncludePath(.{ .path = dirname });
+    //     const include_path = std.fs.path.join(b.allocator, &[_][]const u8{ dirname, "include" }) catch unreachable;
+    //     dep.addIncludePath(.{ .path = include_path });
+    //     dep.addIncludePath(.{ .path = dirname });
 
-        for (include_paths.items) |include| {
-            dep.addIncludePath(.{ .path = include });
-        }
+    //     for (include_paths.items) |include| {
+    //         dep.addIncludePath(.{ .path = include });
+    //     }
 
-        var sources = std.ArrayList([]const u8).init(b.allocator);
-        for (args[2..]) |source| {
-            if (std.mem.startsWith(u8, source, "${")) {
-                const end = std.mem.indexOf(u8, source, "}") orelse unreachable;
-                const name = source[2..end];
-                if (std.mem.eql(u8, name, "RE2_SOURCES")) {
-                    for (parse_cmake_call(b, data, "set(RE2_SOURCES") orelse unreachable) |re2_src| {
-                        sources.append(re2_src) catch unreachable;
-                    }
-                } else {
-                    std.debug.panic("unhandled cmake var: {s}", .{source});
-                }
-            } else {
-                sources.append(source) catch unreachable;
-            }
-        }
+    //     var sources = std.ArrayList([]const u8).init(b.allocator);
+    //     for (args[2..]) |source| {
+    //         if (std.mem.startsWith(u8, source, "${")) {
+    //             const end = std.mem.indexOf(u8, source, "}") orelse unreachable;
+    //             const name = source[2..end];
+    //             if (std.mem.eql(u8, name, "RE2_SOURCES")) {
+    //                 for (parse_cmake_call(b, data, "set(RE2_SOURCES") orelse unreachable) |re2_src| {
+    //                     sources.append(re2_src) catch unreachable;
+    //                 }
+    //             } else {
+    //                 std.debug.panic("unhandled cmake var: {s}", .{source});
+    //             }
+    //         } else {
+    //             sources.append(source) catch unreachable;
+    //         }
+    //     }
 
-        for (sources.items) |source| {
-            if (std.mem.endsWith(u8, source, ".inc")) continue; // TODO: handle .inc files
-            const src_path = std.fs.path.join(b.allocator, &[_][]const u8{ dirname, source }) catch unreachable;
-            const cstd = if (std.mem.endsWith(u8, src_path, ".c")) "" else "-std=c++11";
-            dep.addCSourceFile(.{ .file = .{ .path = src_path }, .flags = &[_][]const u8{cstd} });
-        }
+    //     for (sources.items) |source| {
+    //         if (std.mem.endsWith(u8, source, ".inc")) continue; // TODO: handle .inc files
+    //         const src_path = std.fs.path.join(b.allocator, &[_][]const u8{ dirname, source }) catch unreachable;
+    //         const cstd = if (std.mem.endsWith(u8, src_path, ".c")) "" else "-std=c++11";
+    //         dep.addCSourceFile(.{ .file = .{ .path = src_path }, .flags = &[_][]const u8{cstd} });
+    //     }
 
-        dep.linkLibCpp();
-        lib.linkLibrary(dep);
-    }
+    //     dep.linkLibCpp();
+    //     lib.linkLibrary(dep);
+    // }
 
     lib.strip = true;
     lib.link_gc_sections = true;
